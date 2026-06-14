@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sereban-glitch | AI & Backend Developer</title>
+    <meta property="og:title" content="Sereban-glitch | AI & Backend Developer">
+    <meta property="og:description" content="Zero-Touch Deployment, AI Agents, Go Backend. Портфолио проектов: Smart Zapyt, Shark Dashboard, AGY Claw Bot.">
+    <meta property="og:image" content="https://Sereban-glitch.github.io/assets/shark_cover.jpg">
+    <meta property="og:url" content="https://Sereban-glitch.github.io">
+    <meta name="twitter:card" content="summary_large_image">
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #38bdf8;
+            --accent-hover: #0ea5e9;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding: 1.5rem;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding-top: 2rem;
+        }
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto 1.5rem;
+        }
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .btn {
+            display: inline-block;
+            text-decoration: none;
+            padding: 0.7rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: background-color 0.2s, transform 0.1s;
+            cursor: pointer;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        .btn-primary { background-color: var(--accent); color: #fff; }
+        .btn-primary:hover { background-color: var(--accent-hover); }
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--text-main);
+            border: 1px solid #475569;
+        }
+        .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+        section { margin-bottom: 4rem; }
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .section-title::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: #334155;
+        }
+        .approach-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+        }
+        .approach-item {
+            background: var(--card-bg);
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 1.5rem;
+        }
+        .approach-item h3 { color: var(--accent); margin-bottom: 0.5rem; font-size: 1.1rem; }
+        .approach-item p { color: var(--text-muted); font-size: 0.9rem; }
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 2rem;
+        }
+        .card {
+            background: var(--card-bg);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px -8px rgba(0,0,0,0.5);
+            border-color: var(--accent);
+        }
+        .card-img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            display: block;
+            border-bottom: 1px solid #334155;
+        }
+        .card-body { padding: 1.5rem; }
+        .card-body h2 { font-size: 1.25rem; margin-bottom: 0.5rem; }
+        .card-body p { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem; }
+        .tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1.5rem; }
+        .tag {
+            background: #334155;
+            color: var(--accent);
+            padding: 0.2rem 0.6rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .card-btn {
+            display: block;
+            text-align: center;
+            text-decoration: none;
+            background: var(--accent);
+            color: #fff;
+            padding: 0.6rem;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+        .card-btn:hover { background-color: var(--accent-hover); }
+        .skills-cloud {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+        .skill-badge {
+            background: var(--card-bg);
+            border: 1px solid #334155;
+            padding: 0.4rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            color: var(--text-main);
+            transition: border-color 0.2s, color 0.2s;
+        }
+        .skill-badge:hover { border-color: var(--accent); color: var(--accent); }
+        footer {
+            text-align: center;
+            color: var(--text-muted);
+            border-top: 1px solid #334155;
+            padding-top: 2rem;
+            margin-top: 3rem;
+            font-size: 0.9rem;
+        }
+        footer a { color: var(--accent); text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
+        @media (max-width: 600px) {
+            header h1 { font-size: 1.8rem; }
+            .projects-grid { grid-template-columns: 1fr; }
+            .approach-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Sereban-glitch</h1>
+            <p>Backend &amp; AI Automation Developer. Строю автономные AI-агенты и zero-dependency бэкенды, которые работают везде: от облачных серверов до мобильных устройств.</p>
+            <div class="hero-buttons">
+                <a href="#projects" class="btn btn-primary">Проекты</a>
+                <a href="mailto:lojpa.08.08.08@gmail.com" class="btn btn-secondary">Связаться</a>
+            </div>
+        </header>
+
+        <section>
+            <h2 class="section-title">Мой подход</h2>
+            <div class="approach-grid">
+                <div class="approach-item">
+                    <h3>Zero-Touch Deploy</h3>
+                    <p>Максимальная автоматизация. Код сам разворачивается на сервере — без ручных команд, без SSH-сессий. AGENT_DEPLOY_CHAIN как стандарт.</p>
+                </div>
+                <div class="approach-item">
+                    <h3>Zero-Dependency</h3>
+                    <p>Go-бинарники меньше 10MB без единой внешней зависимости. Работают на чистом Linux, ARM64 (Termux) и AMD64 (GCP).</p>
+                </div>
+                <div class="approach-item">
+                    <h3>AI ReAct Агенты</h3>
+                    <p>Автономные агенты с циклом Reasoning + Acting. Умеют видеть скриншоты, выполнять Bash, писать файлы и принимать решения.</p>
+                </div>
+                <div class="approach-item">
+                    <h3>Universal Runtime</h3>
+                    <p>Каждый проект автоматически определяет окружение: systemd, PM2 или supervisord. Одна кодовая база — любой хостинг.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="projects">
+            <h2 class="section-title">Проекты</h2>
+            <div class="projects-grid">
+                <div class="card">
+                    <img class="card-img" src="assets/bot_cover.jpg" alt="Smart Zapyt Bot Interface">
+                    <div class="card-body">
+                        <h2>Smart Zapyt 🇺🇦</h2>
+                        <p>AI-агент для автоматизации FOI-запросов к госорганам Украины. Больше не нужно составлять заявления, запечатывать конверты и стоять в очередях на почте. Одно голосовое сообщение (30 секунд) — AI формирует юридически грамотный текст, находит госорган в базе и отправляет официальный запрос через SMTP. Ответ приходит на почту и в Telegram.</p>
+                        <div class="tags">
+                            <span class="tag">Go</span>
+                            <span class="tag">Gemini AI</span>
+                            <span class="tag">Telegram Bot</span>
+                            <span class="tag">Vercel</span>
+                        </div>
+                        <a href="https://github.com/Sereban-glitch/info-bot-go" class="card-btn" target="_blank">Исходный код</a>
+                    </div>
+                </div>
+                <div class="card">
+                    <img class="card-img" src="assets/shark_cover.jpg" alt="Shark Dashboard">
+                    <div class="card-body">
+                        <h2>Shark Dashboard v2.0</h2>
+                        <p>Zero-dependency веб-дашборд мониторинга процессов. Автоматически определяет systemd, PM2 и Supervisord через единый интерфейс ProcessManager. Умная сортировка по RAM, янтарные капсулы использования памяти, стильный тёмный UI. Один бинарник — никакой базы данных, никаких внешних зависимостей.</p>
+                        <div class="tags">
+                            <span class="tag">Go</span>
+                            <span class="tag">HTMX</span>
+                            <span class="tag">SSE</span>
+                            <span class="tag">Systemd</span>
+                        </div>
+                        <a href="https://github.com/Sereban-glitch/shark-dashboard" class="card-btn" target="_blank">Исходный код</a>
+                    </div>
+                </div>
+                <div class="card">
+                    <img class="card-img" src="assets/mini_app_cover.jpg" alt="AGY Claw Bot">
+                    <div class="card-body">
+                        <h2>AGY Claw Bot</h2>
+                        <p>Автономный ReAct AI-агент для DevOps в Telegram. Мультимодальный: видит скриншоты сервера и принимает решения. Выполняет Bash-команды, редактирует файлы, управляет процессами. Оснащён zero-touch деплойментом через AGENT_DEPLOY_CHAIN.md — просто дай агенту ссылку на репозиторий.</p>
+                        <div class="tags">
+                            <span class="tag">Node.js</span>
+                            <span class="tag">ReAct</span>
+                            <span class="tag">Gemini</span>
+                            <span class="tag">Zero-Touch</span>
+                        </div>
+                        <a href="https://github.com/Sereban-glitch/agy-claw-bot" class="card-btn" target="_blank">Исходный код</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2 class="section-title">Технологии</h2>
+            <div class="skills-cloud">
+                <span class="skill-badge">Go</span>
+                <span class="skill-badge">Node.js</span>
+                <span class="skill-badge">HTMX</span>
+                <span class="skill-badge">Gemini AI</span>
+                <span class="skill-badge">Telegram API</span>
+                <span class="skill-badge">IMAP/SMTP</span>
+                <span class="skill-badge">PostgreSQL</span>
+                <span class="skill-badge">Systemd</span>
+                <span class="skill-badge">PM2</span>
+                <span class="skill-badge">Supervisord</span>
+                <span class="skill-badge">Docker</span>
+                <span class="skill-badge">GitHub Actions</span>
+            </div>
+        </section>
+
+        <footer>
+            <p>Готов к сотрудничеству и новым проектам</p>
+            <p style="margin-top: 0.5rem;">
+                <a href="mailto:lojpa.08.08.08@gmail.com">lojpa.08.08.08@gmail.com</a>
+                &nbsp;·&nbsp;
+                <a href="https://github.com/Sereban-glitch" target="_blank">GitHub</a>
+                &nbsp;·&nbsp;
+                <a href="https://github.com/Sereban-glitch/info-bot-go" target="_blank">Smart Zapyt</a>
+                &nbsp;·&nbsp;
+                <a href="https://github.com/Sereban-glitch/shark-dashboard" target="_blank">Shark Dashboard</a>
+                &nbsp;·&nbsp;
+                <a href="https://github.com/Sereban-glitch/agy-claw-bot" target="_blank">AGY Claw Bot</a>
+            </p>
+        </footer>
+    </div>
+</body>
+</html>
