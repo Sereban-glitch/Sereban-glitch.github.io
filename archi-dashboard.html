@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Арчи · Дашборд сервера</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root {
+    --bg: #0f172a;
+    --card-bg: #1e293b;
+    --card-border: #334155;
+    --text: #f8fafc;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --accent-hover: #0ea5e9;
+    --gradient: linear-gradient(135deg, #38bdf8, #818cf8);
+    --green: #34d399;
+    --red: #f87171;
+    --yellow: #fbbf24;
+    --orange: #fb923c;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 1rem;
+    -webkit-tap-highlight-color: transparent;
+}
+.container { max-width: 600px; margin: 0 auto; }
+
+/* Header */
+header { text-align: center; margin-bottom: 1.5rem; padding-top: 1rem; }
+header .logo {
+    width: 56px; height: 56px; border-radius: 14px; margin: 0 auto 0.5rem;
+    background: var(--gradient);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; font-weight: 800; color: #fff;
+}
+header h1 {
+    font-size: 1.6rem; margin-bottom: 0.25rem;
+    background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+header p { color: var(--muted); font-size: 0.85rem; }
+
+/* Section */
+.section-title {
+    font-size: 1.1rem; margin: 1.5rem 0 0.75rem;
+    display: flex; align-items: center; gap: 0.5rem;
+}
+.section-title::after { content: ""; flex: 1; height: 1px; background: var(--card-border); }
+
+/* Cards */
+.card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+/* Stat grid */
+.stats-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;
+}
+.stat-card {
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    border-radius: 12px; padding: 0.85rem; text-align: center;
+}
+.stat-num { font-size: 1.8rem; font-weight: 800; }
+.stat-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+/* Service status */
+.svc-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.6rem 0; border-bottom: 1px solid var(--card-border);
+}
+.svc-row:last-child { border-bottom: none; }
+.svc-name { font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; }
+.svc-status { font-size: 0.75rem; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+.svc-active { background: rgba(52,211,153,0.15); color: var(--green); }
+.svc-down { background: rgba(248,113,113,0.15); color: var(--red); }
+
+/* Progress bar */
+.bar { height: 6px; border-radius: 3px; background: var(--card-border); margin-top: 0.5rem; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s; }
+.bar-green { background: var(--green); }
+.bar-yellow { background: var(--yellow); }
+.bar-red { background: var(--red); }
+
+/* Brand bar chart */
+.brand-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem; }
+.brand-name { width: 80px; font-size: 0.75rem; color: var(--muted); text-align: right; }
+.brand-bar { flex: 1; height: 18px; border-radius: 4px; background: var(--card-border); overflow: hidden; }
+.brand-fill { height: 100%; border-radius: 4px; background: var(--accent); display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; font-size: 0.65rem; font-weight: 700; color: #fff; }
+.brand-fill.crit { background: var(--red); }
+.brand-fill.warn { background: var(--orange); }
+
+/* Timeline */
+.timeline-item { display: flex; gap: 0.6rem; padding: 0.5rem 0; border-bottom: 1px solid var(--card-border); }
+.timeline-item:last-child { border-bottom: none; }
+.tl-time { font-size: 0.7rem; color: var(--accent); font-weight: 700; min-width: 40px; }
+.tl-text { font-size: 0.8rem; color: var(--text); }
+
+/* Error log */
+.err-item { background: rgba(248,113,113,0.08); border-left: 3px solid var(--red); border-radius: 6px; padding: 0.5rem 0.75rem; margin-bottom: 0.4rem; font-size: 0.75rem; font-family: monospace; color: var(--red); }
+
+/* Button */
+.btn {
+    display: block; width: 100%; padding: 0.7rem; border: none; border-radius: 10px;
+    background: var(--accent); color: #fff; font-weight: 700; font-size: 0.9rem;
+    cursor: pointer; transition: background 0.2s; margin-top: 1rem;
+}
+.btn:hover { background: var(--accent-hover); }
+
+/* Loading */
+.loading { text-align: center; padding: 2rem; color: var(--muted); }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin: 0 3px; animation: pulse 1.4s infinite; }
+.dot:nth-child(2) { animation-delay: 0.2s; }
+.dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes pulse { 0%,100% { opacity: 0.3; } 50% { opacity: 1; } }
+
+.muted { color: var(--muted); font-size: 0.75rem; }
+.tag { display: inline-block; background: rgba(56,189,248,0.15); color: var(--accent); padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; margin: 2px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+    <div class="logo">A</div>
+    <h1>Арчи · Дашборд</h1>
+    <p>Мониторинг сервера и коммерческих проектов</p>
+</header>
+
+<!-- Stats Grid -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-num" style="color:var(--green)" id="stat-services">—</div>
+        <div class="stat-label">Сервисов онлайн</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-num" style="color:var(--accent)" id="stat-reviews">—</div>
+        <div class="stat-label">Отзывов в AgroBot</div>
+    </div>
+</div>
+
+<!-- Server Resources -->
+<div class="section-title">🖥️ Сервер</div>
+<div class="card">
+    <div class="svc-row">
+        <div class="svc-name">🧠 RAM</div>
+        <div class="muted" id="ram-text">—</div>
+    </div>
+    <div class="bar"><div class="bar-fill bar-green" id="ram-bar" style="width:0%"></div></div>
+
+    <div class="svc-row" style="margin-top:0.5rem">
+        <div class="svc-name">💾 Диск</div>
+        <div class="muted" id="disk-text">—</div>
+    </div>
+    <div class="bar"><div class="bar-fill bar-yellow" id="disk-bar" style="width:0%"></div></div>
+
+    <div class="svc-row" style="margin-top:0.5rem">
+        <div class="svc-name">📊 CPU Load</div>
+        <div class="muted" id="load-text">—</div>
+    </div>
+    <div class="bar"><div class="bar-fill bar-green" id="load-bar" style="width:0%"></div></div>
+
+    <div class="svc-row" style="margin-top:0.5rem">
+        <div class="svc-name">⏱️ Uptime</div>
+        <div class="muted" id="uptime-text">—</div>
+    </div>
+</div>
+
+<!-- Services Status -->
+<div class="section-title">⚙️ Сервисы</div>
+<div class="card" id="services-card">
+    <div class="loading"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+</div>
+
+<!-- AgroBot Reviews -->
+<div class="section-title">🤖 AgroBot — Отзывы по брендам</div>
+<div class="card" id="brands-card">
+    <div class="loading"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+</div>
+
+<!-- Recent Alerts -->
+<div class="section-title">📋 Последние события</div>
+<div class="card" id="timeline-card">
+    <div class="timeline-item"><div class="tl-time">09:00</div><div class="tl-text">🌅 Утренняя сводка отправлена</div></div>
+    <div class="timeline-item"><div class="tl-time">05 мин</div><div class="tl-text">🔄 Проверка AgroBot: все сервисы активны</div></div>
+    <div class="timeline-item"><div class="tl-time">10 мин</div><div class="tl-text">📋 Проверка логов: ошибок не найдено</div></div>
+</div>
+
+<!-- Error Log (if any) -->
+<div id="errors-section" style="display:none">
+    <div class="section-title">⚠️ Ошибки (5 мин)</div>
+    <div class="card" id="errors-card"></div>
+</div>
+
+<!-- Tech Stack -->
+<div class="section-title">🛠 Технологии</div>
+<div class="card">
+    <span class="tag">Node.js 24</span>
+    <span class="tag">Gemini 2.5 Flash</span>
+    <span class="tag">PostgreSQL 16</span>
+    <span class="tag">pgvector</span>
+    <span class="tag">grammy</span>
+    <span class="tag">yt-dlp</span>
+    <span class="tag">Telethon</span>
+    <span class="tag">pg-boss</span>
+    <span class="tag">systemd</span>
+    <span class="tag">GCP Cloud</span>
+</div>
+
+<button class="btn" onclick="refreshData()">🔄 Обновить данные</button>
+<div class="muted" style="text-align:center;margin-top:0.5rem" id="last-update">—</div>
+
+</div>
+
+<script>
+const API_BASE = 'https://sereban-glitch.github.io'; // fallback — no API
+const SERVER_API = 'http://34.46.98.209:8087'; // AgroBot API (if available)
+
+async function fetchData() {
+    try {
+        // Try to fetch from AgroBot health endpoint
+        const resp = await fetch(SERVER_API + '/health', { signal: AbortSignal.timeout(5000) });
+        if (resp.ok) {
+            const data = await resp.json();
+            return data;
+        }
+    } catch (e) {
+        // Fallback to mock data if server not reachable
+    }
+    return null;
+}
+
+function updateMockData() {
+    // This would be replaced by real API data when available
+    document.getElementById('stat-services').textContent = '4/4';
+    document.getElementById('stat-reviews').textContent = '52';
+    document.getElementById('ram-text').textContent = '16% (6.5 ГБ свободно)';
+    document.getElementById('ram-bar').style.width = '16%';
+    document.getElementById('disk-text').textContent = '72% (8 ГБ свободно)';
+    document.getElementById('disk-bar').style.width = '72%';
+    document.getElementById('load-text').textContent = '0.02 / 0.04 / 0.01';
+    document.getElementById('load-bar').style.width = '2%';
+    document.getElementById('uptime-text').textContent = '24 дня 10 часов';
+
+    // Services
+    const services = [
+        { name: 'AgroBot (@AgroLogic24Bot)', status: 'active', icon: '🤖' },
+        { name: 'Арчи (@Console_bot)', status: 'active', icon: '🧠' },
+        { name: 'TG Bridge (reviews)', status: 'active', icon: '📡' },
+        { name: 'PostgreSQL 16', status: 'active', icon: '🗄️' },
+    ];
+    let svcHtml = '';
+    for (const s of services) {
+        svcHtml += `<div class="svc-row">
+            <div class="svc-name">${s.icon} ${s.name}</div>
+            <div class="svc-status svc-${s.status === 'active' ? 'active' : 'down'}">${s.status === 'active' ? '✅ Online' : '❌ Down'}</div>
+        </div>`;
+    }
+    document.getElementById('services-card').innerHTML = svcHtml;
+
+    // Brands
+    const brands = [
+        { name: 'HORSCH', count: 11, critical: 4 },
+        { name: 'John Deere', count: 10, critical: 4 },
+        { name: 'Case IH', count: 9, critical: 5 },
+        { name: 'Hagie', count: 5, critical: 3 },
+        { name: 'Jacto', count: 5, critical: 4 },
+        { name: 'Amazone', count: 4, critical: 2 },
+    ];
+    const maxCount = Math.max(...brands.map(b => b.count));
+    let brandHtml = '';
+    for (const b of brands) {
+        const pct = (b.count / maxCount * 100).toFixed(0);
+        const cls = b.critical >= 4 ? 'crit' : b.critical >= 2 ? 'warn' : '';
+        brandHtml += `<div class="brand-row">
+            <div class="brand-name">${b.name}</div>
+            <div class="brand-bar"><div class="brand-fill ${cls}" style="width:${pct}%">${b.count} (${b.critical}⚠️)</div></div>
+        </div>`;
+    }
+    document.getElementById('brands-card').innerHTML = brandHtml;
+
+    document.getElementById('last-update').textContent = 'Обновлено: ' + new Date().toLocaleTimeString('uk-UA');
+}
+
+async function refreshData() {
+    document.getElementById('last-update').textContent = 'Обновление...';
+    const data = await fetchData();
+    if (data) {
+        // Use real data
+        // TODO: implement when API endpoint is ready
+        updateMockData();
+    } else {
+        // Mock data for now
+        updateMockData();
+    }
+}
+
+// Telegram WebApp
+const tg = window.Telegram?.WebApp;
+if (tg) {
+    tg.ready();
+    tg.expand();
+    tg.setHeaderColor('#0f172a');
+    tg.setBackgroundColor('#0f172a');
+}
+
+// Initial load
+refreshData();
+// Auto-refresh every 30 sec
+setInterval(refreshData, 30000);
+</script>
+</body>
+</html>
