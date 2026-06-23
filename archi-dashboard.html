@@ -99,7 +99,7 @@ header p { color: var(--muted); font-size: 0.85rem; }
 
 <!-- Quick Stats -->
 <div class="stats-grid">
-    <div class="stat-card"><div class="stat-num" style="color:var(--green)" id="stat-services">4/4</div><div class="stat-label">Сервисов онлайн</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--green)" id="stat-services">11/11</div><div class="stat-label">Сервисов онлайн</div></div>
     <div class="stat-card"><div class="stat-num" style="color:var(--accent)" id="stat-reviews">52</div><div class="stat-label">Отзывов AgroBot</div></div>
 </div>
 
@@ -177,19 +177,22 @@ header p { color: var(--muted); font-size: 0.85rem; }
 const ramData = {
     totalMB: 7950,
     processes: [
-        { name: 'OpenCode (IDE)', mb: 258, color: '#f472b6', detail: 'AI code editor' },
-        { name: 'Арчи (console-bot)', mb: 101, color: '#a78bfa', detail: 'Node.js · Telegram bot' },
-        { name: 'AgroBot', mb: 102, color: '#38bdf8', detail: 'Node.js · BERTHOUD sales bot' },
-        { name: 'Antigravity Proxy', mb: 76, color: '#22d3ee', detail: 'Claude/Gemini proxy :18080' },
-        { name: 'bot_skaner bridge', mb: 63, color: '#34d399', detail: 'Python · MTProto' },
-        { name: 'agro_reviews_bridge', mb: 57, color: '#fb923c', detail: 'Python · TG каналы' },
-        { name: 'systemd-journald', mb: 44, color: '#fbbf24', detail: 'Системные логи' },
-        { name: 'freelance-hunter', mb: 40, color: '#f87171', detail: 'Go · парсер фриланса' },
-        { name: 'PostgreSQL', mb: 62, color: '#818cf8', detail: 'База данных · 2 процесса' },
-        { name: 'cloudflared', mb: 24, color: '#94a3b8', detail: 'Cloudflare tunnel' },
-        { name: 'phoenix-radar', mb: 24, color: '#c084fc', detail: 'Go · ритуальные услуги' },
+        { name: 'OpenCode (IDE)', mb: 258, color: '#f472b6', detail: 'AI code editor · opencode-serve' },
+        { name: 'Арчи (console-bot)', mb: 103, color: '#a78bfa', detail: 'Node.js · AI наставник @Console_bot' },
+        { name: 'AgroBot', mb: 103, color: '#38bdf8', detail: 'Node.js · BERTHOUD @AgroLogic24Bot' },
+        { name: 'Antigravity Proxy', mb: 77, color: '#22d3ee', detail: 'Claude/Gemini proxy :18080' },
+        { name: 'systemd-journald', mb: 64, color: '#fbbf24', detail: 'Системные логи · root' },
+        { name: 'bot_skaner bridge', mb: 63, color: '#34d399', detail: 'Python · MTProto · @radiokowtun' },
+        { name: 'agro_reviews_bridge', mb: 57, color: '#fb923c', detail: 'Python · TG каналы для Reviews Radar' },
+        { name: 'freelance-hunter', mb: 42, color: '#f87171', detail: 'Go · парсер фриланса' },
+        { name: 'PostgreSQL', mb: 81, color: '#818cf8', detail: 'БД · 3 процесса (15-main)' },
         { name: 'PM2', mb: 26, color: '#60a5fa', detail: 'Process manager' },
-        { name: 'Прочее', mb: 363, color: '#475569', detail: 'Остальные процессы' },
+        { name: 'cloudflared', mb: 24, color: '#94a3b8', detail: 'Cloudflare tunnel' },
+        { name: 'phoenix-radar', mb: 21, color: '#c084fc', detail: 'Go · ритуальные услуги' },
+        { name: 'bot_skaner bot', mb: 20, color: '#2dd4bf', detail: 'Go · Telegram бот сканера' },
+        { name: 'info-bot-go', mb: 18, color: '#facc15', detail: 'Go · Smart Zapyt FOI бот' },
+        { name: 'python3 (legal_news)', mb: 18, color: '#a3e635', detail: 'Python · юридические новости' },
+        { name: 'Прочее', mb: 375, color: '#475569', detail: 'Остальные системные процессы' },
     ]
 };
 
@@ -247,7 +250,7 @@ function drawProcessList() {
     const card = document.getElementById('proc-card');
     const sorted = [...ramData.processes].sort((a, b) => b.mb - a.mb);
     const maxMB = sorted[0].mb;
-    const rankColors = ['#f87171', '#fb923c', '#fbbf24', '#34d399', '#38bdf8', '#a78bfa', '#94a3b8', '#94a3b8', '#94a3b8', '#94a3b8', '#94a3b8', '#94a3b8', '#94a3b8'];
+    const rankColors = ['#f87171', '#fb923c', '#fbbf24', '#34d399', '#38bdf8', '#a78bfa', '#22d3ee', '#f472b6', '#c084fc', '#60a5fa', '#94a3b8', '#94a3b8', '#94a3b8', '#94a3b8', '#94a3b8', '#94a3b8'];
 
     let html = '';
     sorted.forEach((proc, i) => {
@@ -266,10 +269,11 @@ function drawProcessList() {
     html += `<div class="warn-box">
         💡 При переходе на 1 ГБ план (бесплатный GCP):<br>
         • OpenCode (258 МБ) — отсечь или перенести<br>
-        • freelance-hunter (40 МБ) — остановить<br>
+        • freelance-hunter (42 МБ) — остановить<br>
         • PM2 (26 МБ) — заменить на systemd<br>
+        • Antigravity VectorDB — остановить если не нужен<br>
         • AgroBot можно перевести на Go (~10 МБ)<br>
-        <strong>Итого экономия: ~350 МБ → влезем в 1 ГБ</strong>
+        <strong>Итого экономия: ~370 МБ → влезем в 1 ГБ</strong>
     </div>`;
 
     card.innerHTML = html;
@@ -279,8 +283,15 @@ function drawServices() {
     const services = [
         { name: 'AgroBot (@AgroLogic24Bot)', status: 'active', icon: '🤖' },
         { name: 'Арчи (@Console_bot)', status: 'active', icon: '🧠' },
-        { name: 'TG Bridge (reviews)', status: 'active', icon: '📡' },
-        { name: 'PostgreSQL 16', status: 'active', icon: '🗄️' },
+        { name: 'bot_skaner (@radiokowtun)', status: 'active', icon: '📡' },
+        { name: 'agro_reviews_bridge', status: 'active', icon: '🌾' },
+        { name: 'PostgreSQL 15', status: 'active', icon: '🗄️' },
+        { name: 'Antigravity Proxy :18080', status: 'active', icon: '🔄' },
+        { name: 'freelance-hunter-bot', status: 'active', icon: '💼' },
+        { name: 'phoenix-radar', status: 'active', icon: '🕊️' },
+        { name: 'phoenix-bot-go', status: 'active', icon: '⛪' },
+        { name: 'opencode-serve', status: 'active', icon: '💻' },
+        { name: 'Antigravity VectorDB', status: 'active', icon: '📊' },
     ];
     let html = '';
     for (const s of services) {
@@ -295,8 +306,12 @@ function drawServices() {
 function drawBrands() {
     const brands = [
         { name: 'HORSCH', count: 11, critical: 4 }, { name: 'John Deere', count: 10, critical: 4 },
-        { name: 'Case IH', count: 9, critical: 5 }, { name: 'Hagie', count: 5, critical: 3 },
-        { name: 'Jacto', count: 5, critical: 4 }, { name: 'Amazone', count: 4, critical: 2 },
+        { name: 'Case IH', count: 9, critical: 4 }, { name: 'Hagie', count: 5, critical: 3 },
+        { name: 'Jacto', count: 5, critical: 4 }, { name: 'Amazone', count: 4, critical: 1 },
+        { name: 'HARDI', count: 2, critical: 1 }, { name: 'Stara', count: 1, critical: 1 },
+        { name: 'Dammann', count: 1, critical: 0 }, { name: 'Apache', count: 1, critical: 0 },
+        { name: 'AGCO/Fendt', count: 1, critical: 1 }, { name: 'New Holland', count: 1, critical: 1 },
+        { name: 'Tecnoma', count: 1, critical: 0 },
     ];
     const maxCount = Math.max(...brands.map(b => b.count));
     let html = '';
