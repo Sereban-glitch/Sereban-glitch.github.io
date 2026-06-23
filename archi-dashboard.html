@@ -2,8 +2,7 @@
 <html lang="uk">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Арчи · Дашборд сервера</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
@@ -199,34 +198,39 @@ function drawPieChart() {
     const legend = document.getElementById('pie-legend');
     const total = ramData.totalMB;
     const used = ramData.processes.reduce((s, p) => s + p.mb, 0);
+    const free = total - used;
+
+    // Build full list: processes + free segment = 100% of the pie
+    const sorted = [...ramData.processes].sort((a, b) => b.mb - a.mb);
+    const allSegments = [...sorted, { name: 'Свободно', mb: free, color: '#1e293b', detail: 'Доступно для новых процессов' }];
 
     let cumulative = 0;
     let svgContent = '';
     let legendContent = '';
 
-    // Sort by size (largest first)
-    const sorted = [...ramData.processes].sort((a, b) => b.mb - a.mb);
-
-    for (const proc of sorted) {
-        const pct = (proc.mb / total) * 100;
-        const dashArray = `${pct} ${100 - pct}`;
-        const dashOffset = -cumulative;
-        svgContent += `<circle cx="50" cy="50" r="15.915" fill="transparent" stroke="${proc.color}" stroke-width="30" stroke-dasharray="${dashArray}" stroke-dashoffset="${dashOffset}"/>`;
+    for (const seg of allSegments) {
+        const pct = (seg.mb / total) * 100;
+        if (pct < 0.1) continue; // skip tiny segments
+        const dashArray = `${pct.toFixed(2)} ${(100 - pct).toFixed(2)}`;
+        const dashOffset = -cumulative.toFixed(2);
+        svgContent += `<circle cx="50" cy="50" r="15.915" fill="transparent" stroke="${seg.color}" stroke-width="30" stroke-dasharray="${dashArray}" stroke-dashoffset="${dashOffset}"/>`;
         cumulative += pct;
 
-        const procPct = ((proc.mb / used) * 100).toFixed(1);
-        legendContent += `<div class="legend-item">
-            <div class="legend-dot" style="background:${proc.color}"></div>
-            <div class="legend-name">${proc.name}</div>
-            <div class="legend-val">${proc.mb} МБ · ${procPct}%</div>
+        const procPct = ((seg.mb / used) * 100).toFixed(1);
+        const isFree = seg.name === 'Свободно';
+        legendContent += `<div class="legend-item" style="${isFree ? 'opacity:0.5' : ''}">
+            <div class="legend-dot" style="background:${seg.color}"></div>
+            <div class="legend-name">${seg.name}</div>
+            <div class="legend-val">${seg.mb} МБ · ${isFree ? (pct.toFixed(0)) + '%' : procPct + '%'}</div>
         </div>`;
     }
 
     svg.innerHTML = svgContent;
     legend.innerHTML = legendContent;
 
-    // Center text
-    document.getElementById('ram-total-num').textContent = (total / 1024).toFixed(1);
+    // Center text: used / total
+    document.getElementById('ram-total-num').textContent = (used / 1024).toFixed(1);
+    document.querySelector('.pie-center-label').textContent = 'ГБ занято';
 }
 
 function drawProcessList() {
