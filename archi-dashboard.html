@@ -45,7 +45,7 @@ header p { color: var(--muted); font-size: 0.85rem; }
 /* Pie chart */
 .pie-container { display: flex; align-items: center; gap: 1rem; margin: 0.5rem 0; }
 .pie-wrapper { position: relative; width: 140px; height: 140px; flex-shrink: 0; }
-.pie-wrapper svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.pie-wrapper svg { width: 100%; height: 100%; }
 .pie-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
 .pie-center-num { font-size: 1.4rem; font-weight: 800; }
 .pie-center-label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
@@ -200,35 +200,45 @@ function drawPieChart() {
     const used = ramData.processes.reduce((s, p) => s + p.mb, 0);
     const free = total - used;
 
-    // Build full list: processes + free segment = 100% of the pie
     const sorted = [...ramData.processes].sort((a, b) => b.mb - a.mb);
-    const allSegments = [...sorted, { name: 'Свободно', mb: free, color: '#1e293b', detail: 'Доступно для новых процессов' }];
+    const allSegments = [...sorted, { name: 'Свободно', mb: free, color: '#1e293b', detail: 'Доступно' }];
 
-    let cumulative = 0;
+    // Use path arcs for a perfect pie chart
+    // Formula: each segment is an arc from angle A to angle B
+    const cx = 50, cy = 50, r = 40; // circle radius
+    let startAngle = -Math.PI / 2; // start from top (12 o'clock)
     let svgContent = '';
     let legendContent = '';
 
     for (const seg of allSegments) {
-        const pct = (seg.mb / total) * 100;
-        if (pct < 0.1) continue; // skip tiny segments
-        const dashArray = `${pct.toFixed(2)} ${(100 - pct).toFixed(2)}`;
-        const dashOffset = -cumulative.toFixed(2);
-        svgContent += `<circle cx="50" cy="50" r="15.915" fill="transparent" stroke="${seg.color}" stroke-width="30" stroke-dasharray="${dashArray}" stroke-dashoffset="${dashOffset}"/>`;
-        cumulative += pct;
+        const pct = seg.mb / total;
+        if (pct < 0.002) continue;
+        const endAngle = startAngle + pct * 2 * Math.PI;
+
+        // Arc path: M cx cy L x1 y1 A r r 0 largeArc 1 x2 y2 Z
+        const x1 = cx + r * Math.cos(startAngle);
+        const y1 = cy + r * Math.sin(startAngle);
+        const x2 = cx + r * Math.cos(endAngle);
+        const y2 = cy + r * Math.sin(endAngle);
+        const largeArc = pct > 0.5 ? 1 : 0;
+
+        svgContent += `<path d="M${cx},${cy} L${x1.toFixed(2)},${y1.toFixed(2)} A${r},${r} 0 ${largeArc} 1 ${x2.toFixed(2)},${y2.toFixed(2)} Z" fill="${seg.color}" stroke="#0f172a" stroke-width="1"/>`;
+
+        startAngle = endAngle;
 
         const procPct = ((seg.mb / used) * 100).toFixed(1);
         const isFree = seg.name === 'Свободно';
+        const totalPct = (pct * 100).toFixed(1);
         legendContent += `<div class="legend-item" style="${isFree ? 'opacity:0.5' : ''}">
             <div class="legend-dot" style="background:${seg.color}"></div>
             <div class="legend-name">${seg.name}</div>
-            <div class="legend-val">${seg.mb} МБ · ${isFree ? (pct.toFixed(0)) + '%' : procPct + '%'}</div>
+            <div class="legend-val">${seg.mb} МБ · ${totalPct}%</div>
         </div>`;
     }
 
     svg.innerHTML = svgContent;
     legend.innerHTML = legendContent;
 
-    // Center text: used / total
     document.getElementById('ram-total-num').textContent = (used / 1024).toFixed(1);
     document.querySelector('.pie-center-label').textContent = 'ГБ занято';
 }
