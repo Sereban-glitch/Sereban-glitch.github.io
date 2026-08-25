@@ -1,0 +1,225 @@
+'use strict';
+
+const fs = require('node:fs');
+const os = require('node:os');
+
+const PROCESS_TYPES = [
+  ['opencode', 'OpenCode (IDE)', '#f472b6'],
+  ['console-bot', 'Арчи (console-bot)', '#a78bfa'],
+  ['agrobot', 'AgroBot', '#38bdf8'],
+  ['agy-proxy', 'Antigravity Proxy', '#22d3ee'],
+  ['postgres', 'PostgreSQL', '#818cf8'],
+  ['systemd-journald', 'systemd-journald', '#fbbf24'],
+];
+
+function collectorError(code, message) {
+  const error = new Error(message);
+  error.code = code;
+  return error;
+}
+
+function parseMeminfo(text) {
+  if (typeof text !== 'string') {
+    throw collectorError('MALFORMED_MEMINFO', 'Malformed memory information');
+  }
+  const totalMatch = /^MemTotal:\s+(\d+)\s+kB$/m.exec(text);
+  const availableMatch = /^MemAvailable:\s+(\d+)\s+kB$/m.exec(text);
+  const totalKB = Number(totalMatch?.[1]);
+  const availableKB = Number(availableMatch?.[1]);
+
+  if (!Number.isFinite(totalKB) || totalKB <= 0 || !Number.isFinite(availableKB)
+      || availableKB < 0 || availableKB > totalKB) {
+    throw collectorError('MALFORMED_MEMINFO', 'Malformed memory information');
+  }
+
+  const usedKB = totalKB - availableKB;
+  return {
+    totalMB: Math.round(totalKB / 1024),
+    usedMB: Math.round(usedKB / 1024),
+    percent: Math.round((usedKB / totalKB) * 100),
+  };
+}
+
+function parseLoadavg(text, cpuCount) {
+  if (typeof text !== 'string') {
+    throw collectorError('MALFORMED_LOADAVG', 'Malformed load information');
+  }
+  const fields = text.trim().split(/\s+/);
+  const values = fields.slice(0, 3).map(Number);
+  if (fields.length < 3 || values.some((value) => !Number.isFinite(value) || value < 0)
+      || !Number.isInteger(cpuCount) || cpuCount <= 0) {
+    throw collectorError('MALFORMED_LOADAVG', 'Malformed load information');
+  }
+
+  const [one, five, fifteen] = values;
+  return {
+    one,
+    five,
+    fifteen,
+    percent: Math.round((one / cpuCount) * 100),
+  };
+}
+
+function parseUptime(text) {
+  if (typeof text !== 'string') {
+    throw collectorError('MALFORMED_UPTIME', 'Malformed uptime information');
+  }
+  const fields = text.trim().split(/\s+/);
+  const uptime = Number(fields[0]);
+  if (fields.length < 2 || !Number.isFinite(uptime) || uptime < 0) {
+    throw collectorError('MALFORMED_UPTIME', 'Malformed uptime information');
+  }
+  return Math.floor(uptime);
+}
+
+function processDetail(count) {
+  return `${count} ${count === 1 ? 'process' : 'processes'}`;
+}
+
+function normalizeProcesses(records) {
+  const groups = new Map(PROCESS_TYPES.map(([key, name, color]) => [key, {
+    key,
+    name,
+    color,
+    count: 0,
+    memoryKB: 0,
+  }]));
+  let otherCount = 0;
+  let otherMemoryKB = 0;
+
+  for (const record of records) {
+    const memoryKB = Number(record?.memoryKB);
+    if (!Number.isFinite(memoryKB) || memoryKB < 0) {
+      throw collectorError('MALFORMED_PROCESS_RECORD', 'Malformed process record');
+    }
+
+    const classificationInput = `${String(record.name || '')}\0${String(record.cmdline || '')}`;
+    const type = PROCESS_TYPES.find(([key]) => classificationInput.includes(key));
+    if (type) {
+      const group = groups.get(type[0]);
+      group.count += 1;
+      group.memoryKB += memoryKB;
+    } else {
+      otherCount += 1;
+      otherMemoryKB += memoryKB;
+    }
+  }
+
+  const named = [...groups.values()]
+    .filter((group) => group.count > 0)
+    .sort((left, right) => right.memoryKB - left.memoryKB)
+    .slice(0, 15);
+  const includedKeys = new Set(named.map((group) => group.key));
+  for (const group of groups.values()) {
+    if (group.count > 0 && !includedKeys.has(group.key)) {
+      otherCount += group.count;
+      otherMemoryKB += group.memoryKB;
+    }
+  }
+
+  return [
+    ...named.map(({ key, name, color, count, memoryKB }) => ({
+      key,
+      name,
+      detail: processDetail(count),
+      memoryMB: Math.round(memoryKB / 1024),
+      color,
+    })),
+    {
+      key: 'other',
+      name: 'Прочее',
+      detail: processDetail(otherCount),
+      memoryMB: Math.round(otherMemoryKB / 1024),
+      color: '#475569',
+    },
+  ];
+}
+
+function parseProcessStatus(text) {
+  const nameMatch = /^Name:\s+(.+)$/m.exec(text);
+  const memoryMatch = /^VmRSS:\s+(\d+)\s+kB$/m.exec(text);
+  if (!nameMatch || !memoryMatch) {
+    throw collectorError('MALFORMED_PROCESS_STATUS', 'Malformed process status');
+  }
+  return { name: nameMatch[1], memoryKB: Number(memoryMatch[1]) };
+}
+
+async function collectServer(deps = {}) {
+  const readFile = deps.readFile || fs.promises.readFile;
+  const statfs = deps.statfs || fs.promises.statfs;
+  const cpuCount = deps.cpuCount ?? os.cpus().length;
+
+  try {
+    const [meminfo, loadavg, uptime, diskStats] = await Promise.all([
+      readFile('/proc/meminfo', 'utf8'),
+      readFile('/proc/loadavg', 'utf8'),
+      readFile('/proc/uptime', 'utf8'),
+      statfs('/'),
+    ]);
+    const blocks = Number(diskStats.blocks);
+    const availableBlocks = Number(diskStats.bavail);
+    const blockSize = Number(diskStats.bsize);
+    if (![blocks, availableBlocks, blockSize].every(Number.isFinite)
+        || blocks < 0 || availableBlocks < 0 || availableBlocks > blocks || blockSize < 0) {
+      throw collectorError('MALFORMED_STATFS', 'Malformed disk information');
+    }
+
+    const totalBytes = blocks * blockSize;
+    const usedBytes = (blocks - availableBlocks) * blockSize;
+    return {
+      memory: parseMeminfo(String(meminfo)),
+      disk: {
+        totalMB: Math.round(totalBytes / 1024 / 1024),
+        usedMB: Math.round(usedBytes / 1024 / 1024),
+        percent: totalBytes === 0 ? 0 : Math.round((usedBytes / totalBytes) * 100),
+      },
+      load: parseLoadavg(String(loadavg), cpuCount),
+      uptimeSeconds: parseUptime(String(uptime)),
+    };
+  } catch (error) {
+    if (typeof error?.code === 'string' && error.code.startsWith('MALFORMED_')) throw error;
+    throw collectorError('SERVER_COLLECTION_FAILED', 'Server resource collection failed');
+  }
+}
+
+async function collectProcesses(deps = {}) {
+  const readdir = deps.readdir || fs.promises.readdir;
+  const readFile = deps.readFile || fs.promises.readFile;
+
+  try {
+    const entries = await readdir('/proc');
+    const pids = entries.filter((entry) => /^\d+$/.test(String(entry)));
+    const records = [];
+    let nextIndex = 0;
+
+    async function worker() {
+      while (nextIndex < pids.length) {
+        const pid = pids[nextIndex];
+        nextIndex += 1;
+        try {
+          const statusText = await readFile(`/proc/${pid}/status`, 'utf8');
+          const status = parseProcessStatus(String(statusText));
+          const cmdline = await readFile(`/proc/${pid}/cmdline`, 'utf8');
+          records.push({ ...status, cmdline: String(cmdline) });
+        } catch (error) {
+          if (error?.code !== 'ENOENT') throw error;
+        }
+      }
+    }
+
+    await Promise.all(Array.from({ length: Math.min(16, pids.length) }, worker));
+    return normalizeProcesses(records);
+  } catch (error) {
+    if (error?.code === 'PROCESS_COLLECTION_FAILED') throw error;
+    throw collectorError('PROCESS_COLLECTION_FAILED', 'Process collection failed');
+  }
+}
+
+module.exports = {
+  collectProcesses,
+  collectServer,
+  normalizeProcesses,
+  parseLoadavg,
+  parseMeminfo,
+  parseUptime,
+};
