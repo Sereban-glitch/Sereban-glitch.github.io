@@ -1,0 +1,8 @@
+{
+  "name": "archi-dashboard-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "engines": { "node": ">=24" },
+  "scripts": { "test": "node --test *.test.js" }
+}
