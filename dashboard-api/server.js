@@ -3,6 +3,7 @@
 const http = require('node:http');
 
 const { validateInitData } = require('./auth');
+const { collectStatus } = require('./status');
 
 const ALLOWED_ORIGIN = 'https://sereban-glitch.github.io';
 const COLLECT_TIMEOUT_MS = 5000;
@@ -99,11 +100,25 @@ function createServer({
   });
 }
 
-module.exports = { createServer };
+function startServer({
+  env = process.env,
+  collectStatus: statusCollector = collectStatus,
+  create = createServer,
+} = {}) {
+  if (!env.BOT_TOKEN) throw new Error('BOT_TOKEN is required');
+  return create({
+    botToken: env.BOT_TOKEN,
+    collectStatus: statusCollector,
+  }).listen(env.PORT || 18181, '127.0.0.1');
+}
+
+module.exports = { createServer, startServer };
 
 if (require.main === module) {
-  createServer({
-    botToken: process.env.TELEGRAM_BOT_TOKEN,
-    collectStatus: async () => { throw new Error('collector unavailable'); },
-  }).listen(18181, '127.0.0.1');
+  try {
+    startServer();
+  } catch {
+    process.stderr.write('BOT_TOKEN is required\n');
+    process.exitCode = 1;
+  }
 }

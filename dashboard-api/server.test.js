@@ -1,11 +1,12 @@
 'use strict';
 
 const assert = require('node:assert/strict');
+const { spawnSync } = require('node:child_process');
 const crypto = require('node:crypto');
 const http = require('node:http');
 const { after, before, test } = require('node:test');
 
-const { createServer } = require('./server');
+const { createServer, startServer } = require('./server');
 
 const ALLOWED_ORIGIN = 'https://sereban-glitch.github.io';
 const BOT_TOKEN = '123456789:test-token-for-fixtures';
@@ -161,4 +162,44 @@ test('returns temporarily unavailable when collection fails or times out', async
     assert.equal(response.status, 503);
     assert.deepEqual(await response.json(), { error: 'temporarily_unavailable' });
   }
+});
+
+test('starts the executable server with BOT_TOKEN, loopback, configured port, and injected collector', () => {
+  const collector = async () => statusFixture;
+  let createOptions;
+  let listenArgs;
+  const fakeServer = {
+    listen(...args) {
+      listenArgs = args;
+      return this;
+    },
+  };
+
+  const result = startServer({
+    env: { BOT_TOKEN: BOT_TOKEN, PORT: '19000' },
+    collectStatus: collector,
+    create: (options) => {
+      createOptions = options;
+      return fakeServer;
+    },
+  });
+
+  assert.equal(result, fakeServer);
+  assert.deepEqual(createOptions, { botToken: BOT_TOKEN, collectStatus: collector });
+  assert.deepEqual(listenArgs, ['19000', '127.0.0.1']);
+});
+
+test('direct startup without BOT_TOKEN fails before listening', () => {
+  const env = { ...process.env };
+  delete env.BOT_TOKEN;
+  delete env.TELEGRAM_BOT_TOKEN;
+  const result = spawnSync(process.execPath, [require.resolve('./server')], {
+    env,
+    encoding: 'utf8',
+    timeout: 1000,
+  });
+
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 1);
+  assert.equal(result.stderr, 'BOT_TOKEN is required\n');
 });
