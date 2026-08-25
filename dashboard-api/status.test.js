@@ -62,15 +62,25 @@ test('maps every fixed systemd unit and invokes only the fixed show arguments', 
   ]);
 });
 
-test('maps command and malformed-output failures to unknown without leaking details', async () => {
+test('maps every non-empty loaded non-active state offline and malformed output unknown', async () => {
   const result = await collectServices(async (args) => {
     if (args[1] === 'agrobot.service') throw new Error('systemctl-secret');
-    if (args[1] === 'console-bot.service') return 'LoadState=loaded\nActiveState=secret-state\n';
+    if (args[1] === 'console-bot.service') {
+      return 'LoadState=loaded\nActiveState=secret-state\nSubState=secret-substate\nActiveEnterTimestamp=\n';
+    }
+    if (args[1] === 'bot_skaner.service') {
+      return 'LoadState=loaded\nActiveState=\nSubState=dead\nActiveEnterTimestamp=\n';
+    }
+    if (args[1] === 'agro_reviews_bridge.service') {
+      return 'LoadState=loaded\nSubState=running\nActiveEnterTimestamp=\n';
+    }
     return SERVICE_FIXTURES.get(args[1]);
   });
 
   assert.equal(result.services[0].status, 'unknown');
-  assert.equal(result.services[1].status, 'unknown');
+  assert.equal(result.services[1].status, 'offline');
+  assert.equal(result.services[2].status, 'unknown');
+  assert.equal(result.services[3].status, 'unknown');
   assert.equal(JSON.stringify(result).includes('secret'), false);
 });
 
@@ -173,4 +183,40 @@ test('uses empty processes for a process-only failure', async () => {
   assert.deepEqual(result.processes, []);
   assert.deepEqual(result.events, [{ at: GENERATED_AT, category: 'processes_collection_failed' }]);
   assert.equal(JSON.stringify(result).includes('process-secret'), false);
+});
+
+test('orders and caps combined transitions and collector failures at three events', async () => {
+  const transitions = [
+    { at: '2026-08-24T11:57:00.000Z', category: 'service_status', service: 'postgresql', status: 'online' },
+    { at: '2026-08-24T11:59:00.000Z', category: 'service_status', service: 'agrobot', status: 'online' },
+    { at: '2026-08-24T11:58:00.000Z', category: 'service_status', service: 'reviews_bridge', status: 'online' },
+  ];
+  const combined = await collectStatus({
+    now: () => new Date(GENERATED_AT),
+    collectServer: async () => { throw new Error('server-secret'); },
+    collectProcesses: async () => { throw new Error('process-secret'); },
+    collectServices: async () => ({ services: [], events: transitions }),
+    collectAgrobot: async () => ({ totalReviews: 0, brands: [] }),
+  });
+
+  assert.deepEqual(combined.events, [
+    { at: GENERATED_AT, category: 'server_collection_failed' },
+    { at: GENERATED_AT, category: 'processes_collection_failed' },
+    { at: '2026-08-24T11:59:00.000Z', category: 'service_status', service: 'agrobot', status: 'online' },
+  ]);
+
+  const allFailed = await collectStatus({
+    now: () => new Date(GENERATED_AT),
+    collectServer: async () => { throw new Error('server-secret'); },
+    collectProcesses: async () => { throw new Error('process-secret'); },
+    collectServices: async () => { throw new Error('service-secret'); },
+    collectAgrobot: async () => { throw new Error('agrobot-secret'); },
+  });
+
+  assert.deepEqual(allFailed.events, [
+    { at: GENERATED_AT, category: 'server_collection_failed' },
+    { at: GENERATED_AT, category: 'processes_collection_failed' },
+    { at: GENERATED_AT, category: 'services_collection_failed' },
+  ]);
+  assert.equal(JSON.stringify([combined, allFailed]).includes('secret'), false);
 });

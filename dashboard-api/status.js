@@ -92,12 +92,13 @@ function parseSystemctl(text) {
 
   const loadState = properties.get('LoadState');
   const activeState = properties.get('ActiveState');
+  const subState = properties.get('SubState');
+  if (!loadState || !activeState || !subState) return null;
   let status;
   if (loadState === 'not-found') status = 'not_migrated';
   else if (loadState !== 'loaded') return null;
   else if (activeState === 'active') status = 'online';
-  else if (['inactive', 'failed', 'activating', 'deactivating', 'reloading'].includes(activeState)) status = 'offline';
-  else return null;
+  else status = 'offline';
 
   let activeAt = null;
   const timestamp = properties.get('ActiveEnterTimestamp');
@@ -201,7 +202,9 @@ async function collectStatus(deps = {}) {
     agrobot: agrobotResult.status === 'fulfilled'
       ? agrobotResult.value
       : { totalReviews: 0, brands: [] },
-    events,
+    events: events
+      .sort((left, right) => right.at.localeCompare(left.at))
+      .slice(0, 3),
   };
 }
 
