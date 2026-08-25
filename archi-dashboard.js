@@ -181,9 +181,14 @@ function renderPie(data) {
     const chartMemory = Math.min(segment.memoryMB, remaining);
     const percent = chartMemory / total;
     if (percent >= 0.002) {
-      const arc = piePath(startAngle, percent);
-      startAngle = arc.endAngle;
-      pie += `<path d="${arc.path}" fill="${segment.color}" stroke="#0f172a" stroke-width="1"/>`;
+      if (percent === 1) {
+        pie += `<circle cx="50" cy="50" r="40" fill="${segment.color}" stroke="#0f172a" stroke-width="1"/>`;
+        startAngle += 2 * Math.PI;
+      } else {
+        const arc = piePath(startAngle, percent);
+        startAngle = arc.endAngle;
+        pie += `<path d="${arc.path}" fill="${segment.color}" stroke="#0f172a" stroke-width="1"/>`;
+      }
     }
     remaining -= chartMemory;
     const isFree = segment.name === 'Свободно';

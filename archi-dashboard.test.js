@@ -67,6 +67,34 @@ test('escapes every API-provided label before markup generation', () => {
   assert.match(markup, /&quot;process-detail&quot;/);
 });
 
+test('renders entirely free memory as a nonblank full circle', () => {
+  const status = structuredClone(VALID_STATUS);
+  status.server.memory = { totalMB: 100, usedMB: 0, percent: 0 };
+  status.processes = [];
+
+  assert.equal(validateStatus(status), true);
+  const { pie } = renderMarkup(status);
+  assert.notEqual(pie, '');
+  assert.equal(pie.includes('<circle') || (pie.match(/ A40,40 /g) || []).length >= 2, true);
+});
+
+test('renders one process consuming all memory as a nonblank full circle', () => {
+  const status = structuredClone(VALID_STATUS);
+  status.server.memory = { totalMB: 100, usedMB: 100, percent: 100 };
+  status.processes = [{
+    key: 'agrobot',
+    name: 'AgroBot',
+    detail: '1 process',
+    memoryMB: 100,
+    color: '#38bdf8',
+  }];
+
+  assert.equal(validateStatus(status), true);
+  const { pie } = renderMarkup(status);
+  assert.notEqual(pie, '');
+  assert.equal(pie.includes('<circle') || (pie.match(/ A40,40 /g) || []).length >= 2, true);
+});
+
 test('maps all service states to honest Russian labels', () => {
   assert.deepEqual(serviceStatusView('online'), { className: 'svc-active', label: '✅ Online' });
   assert.deepEqual(serviceStatusView('offline'), { className: 'svc-down', label: '❌ Offline' });
