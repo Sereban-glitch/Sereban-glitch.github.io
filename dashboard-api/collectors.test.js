@@ -123,7 +123,12 @@ test('does not trust server dependency error codes when redacting failures', asy
 
 test('maps known commands to fixed labels and never returns command arguments', () => {
   const result = normalizeProcesses([
-    { name: 'node', cmdline: 'node\0/srv/console-bot/index.js\0--token\0super-secret', memoryKB: 1024 },
+    {
+      name: 'node',
+      cmdline: 'node\0/srv/console-bot/index.js\0--token\0super-secret',
+      cgroup: '0::/system.slice/console-bot.service\n',
+      memoryKB: 1024,
+    },
     { name: 'postgres', cmdline: 'postgres\0-D\0/private/database', memoryKB: 2048 },
     { name: 'mystery-secret-name', cmdline: '/private/unknown\0--password\0hidden', memoryKB: 512 },
   ]);
@@ -147,6 +152,48 @@ test('does not classify service names found only in command arguments', () => {
 
   assert.deepEqual(result, [
     { key: 'other', name: 'Прочее', detail: '3 processes', memoryMB: 7, color: '#475569' },
+  ]);
+});
+
+test('does not classify service names from executable or script path components', () => {
+  const result = normalizeProcesses([
+    { name: 'backup', cmdline: '/srv/opencode/backup', cgroup: '', memoryKB: 1024 },
+    { name: 'node', cmdline: 'node\0/tmp/agrobot/report.js', cgroup: '', memoryKB: 2048 },
+    { name: 'runner', cmdline: '/srv/agy-proxy/runner', cgroup: '', memoryKB: 4096 },
+  ]);
+
+  assert.deepEqual(result, [
+    { key: 'other', name: 'Прочее', detail: '3 processes', memoryMB: 7, color: '#475569' },
+  ]);
+});
+
+test('classifies production Node services by exact systemd cgroup unit', () => {
+  const result = normalizeProcesses([
+    {
+      name: 'node',
+      cmdline: 'node\0--enable-source-maps\0./dist/index.mjs',
+      cgroup: '0::/system.slice/agrobot.service\n',
+      memoryKB: 3072,
+    },
+    {
+      name: 'node',
+      cmdline: 'node\0bot.js',
+      cgroup: '0::/system.slice/console-bot.service\n',
+      memoryKB: 2048,
+    },
+    {
+      name: 'node',
+      cmdline: 'node\0/opt/node-v20.20.2/lib/node_modules/antigravity-claude-proxy/src/index.js\0--port\x0018080',
+      cgroup: '0::/system.slice/agy-proxy.service\n',
+      memoryKB: 1024,
+    },
+  ]);
+
+  assert.deepEqual(result, [
+    { key: 'agrobot', name: 'AgroBot', detail: '1 process', memoryMB: 3, color: '#38bdf8' },
+    { key: 'console-bot', name: 'Арчи (console-bot)', detail: '1 process', memoryMB: 2, color: '#a78bfa' },
+    { key: 'agy-proxy', name: 'Antigravity Proxy', detail: '1 process', memoryMB: 1, color: '#22d3ee' },
+    { key: 'other', name: 'Прочее', detail: '0 processes', memoryMB: 0, color: '#475569' },
   ]);
 });
 
@@ -213,6 +260,38 @@ test('rejects malformed process status and unexpected read errors without leakin
       (error) => error.code === 'PROCESS_COLLECTION_FAILED' && !String(error).includes('secret'),
     );
   }
+});
+
+test('tolerates vanished cgroups and sanitizes other cgroup read failures', async () => {
+  const status = 'Name:\tnode\nVmRSS:\t1024 kB\n';
+  const vanished = new Error('vanished-cgroup');
+  vanished.code = 'ENOENT';
+  const vanishedResult = await collectProcesses({
+    readdir: async () => ['42'],
+    readFile: async (path) => {
+      if (path.endsWith('/status')) return status;
+      if (path.endsWith('/cmdline')) return 'node\0bot.js';
+      throw vanished;
+    },
+  });
+  assert.deepEqual(vanishedResult, [
+    { key: 'other', name: 'Прочее', detail: '0 processes', memoryMB: 0, color: '#475569' },
+  ]);
+
+  const denied = new Error('cgroup-read-secret');
+  denied.code = 'EACCES';
+  await assert.rejects(
+    collectProcesses({
+      readdir: async () => ['42'],
+      readFile: async (path) => {
+        if (path.endsWith('/status')) return status;
+        if (path.endsWith('/cmdline')) return 'node\0bot.js';
+        throw denied;
+      },
+    }),
+    (error) => error.code === 'PROCESS_COLLECTION_FAILED'
+      && !String(error).includes('cgroup-read-secret'),
+  );
 });
 
 test('does not trust process dependency error codes when redacting failures', async () => {

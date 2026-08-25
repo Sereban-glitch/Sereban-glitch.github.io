@@ -11,6 +11,15 @@ const PROCESS_TYPES = [
   ['postgres', 'PostgreSQL', '#818cf8'],
   ['systemd-journald', 'systemd-journald', '#fbbf24'],
 ];
+const CGROUP_UNITS = new Map([
+  ['agrobot.service', 'agrobot'],
+  ['console-bot.service', 'console-bot'],
+  ['agy-proxy.service', 'agy-proxy'],
+  ['postgresql.service', 'postgres'],
+  ['postgresql@15-main.service', 'postgres'],
+  ['systemd-journald.service', 'systemd-journald'],
+  ['opencode-serve.service', 'opencode'],
+]);
 const INTERNAL_ERROR = Symbol('internalCollectorError');
 
 function collectorError(code, message) {
@@ -80,25 +89,18 @@ function processDetail(count) {
   return `${count} ${count === 1 ? 'process' : 'processes'}`;
 }
 
-function processIdentityTokens(record) {
-  const identities = new Set([String(record.name || '')]);
-  const command = String(record.cmdline || '').split('\0');
-  const executable = command[0] || '';
+function processType(record) {
+  const cgroupTypes = new Set();
+  for (const line of String(record.cgroup || '').split('\n')) {
+    for (const component of line.split('/')) {
+      const type = CGROUP_UNITS.get(component);
+      if (type) cgroupTypes.add(type);
+    }
+  }
+
+  const executable = String(record.cmdline || '').split('\0')[0];
   const executableName = executable.split('/').filter(Boolean).at(-1) || '';
-  const identityPaths = [executable];
-
-  if (executableName === 'node' || executableName === 'nodejs') {
-    const script = command[1];
-    if (script && !script.startsWith('-')) identityPaths.push(script);
-  }
-
-  for (const identityPath of identityPaths) {
-    const parts = identityPath.split('/').filter(Boolean);
-    for (const part of parts) identities.add(part);
-    const basename = parts.at(-1);
-    if (basename?.includes('.')) identities.add(basename.slice(0, basename.lastIndexOf('.')));
-  }
-  return identities;
+  return PROCESS_TYPES.find(([key]) => cgroupTypes.has(key) || executableName === key);
 }
 
 function normalizeProcesses(records) {
@@ -118,8 +120,7 @@ function normalizeProcesses(records) {
       throw collectorError('MALFORMED_PROCESS_RECORD', 'Malformed process record');
     }
 
-    const identities = processIdentityTokens(record);
-    const type = PROCESS_TYPES.find(([key]) => identities.has(key));
+    const type = processType(record);
     if (type) {
       const group = groups.get(type[0]);
       group.count += 1;
@@ -225,7 +226,8 @@ async function collectProcesses(deps = {}) {
           const statusText = await readFile(`/proc/${pid}/status`, 'utf8');
           const status = parseProcessStatus(String(statusText));
           const cmdline = await readFile(`/proc/${pid}/cmdline`, 'utf8');
-          records.push({ ...status, cmdline: String(cmdline) });
+          const cgroup = await readFile(`/proc/${pid}/cgroup`, 'utf8');
+          records.push({ ...status, cmdline: String(cmdline), cgroup: String(cgroup) });
         } catch (error) {
           if (error?.code !== 'ENOENT') throw error;
         }
