@@ -262,6 +262,53 @@ test('rejects malformed process status and unexpected read errors without leakin
   }
 });
 
+test('accepts missing VmRSS only for empty cmdline and still classifies cgroups', async () => {
+  const result = await collectProcesses({
+    readdir: async () => ['42', '43'],
+    readFile: async (path) => {
+      if (path.endsWith('/status')) {
+        return path.includes('/42/') ? 'Name:\tkworker-secret\nState:\tI\n' : 'Name:\tjournal-secret\nState:\tS\n';
+      }
+      if (path.endsWith('/cmdline')) return '';
+      return path.includes('/43/')
+        ? '0::/system.slice/systemd-journald.service\n'
+        : '0::/kernel-threads\n';
+    },
+  });
+
+  assert.deepEqual(result, [
+    {
+      key: 'systemd-journald',
+      name: 'systemd-journald',
+      detail: '1 process',
+      memoryMB: 0,
+      color: '#fbbf24',
+    },
+    { key: 'other', name: 'Прочее', detail: '1 process', memoryMB: 0, color: '#475569' },
+  ]);
+  assert.equal(JSON.stringify(result).includes('secret'), false);
+});
+
+test('rejects missing VmRSS with nonempty cmdline after reading it without leaking data', async () => {
+  const reads = [];
+  await assert.rejects(
+    collectProcesses({
+      readdir: async () => ['42'],
+      readFile: async (path) => {
+        reads.push(path);
+        if (path.endsWith('/status')) return 'Name:\tstatus-secret\nState:\tS\n';
+        if (path.endsWith('/cmdline')) return 'unknown\0--token\0cmdline-secret';
+        return '0::/system.slice/cgroup-secret.service\n';
+      },
+    }),
+    (error) => error.code === 'PROCESS_COLLECTION_FAILED'
+      && !String(error).includes('status-secret')
+      && !String(error).includes('cmdline-secret')
+      && !String(error).includes('cgroup-secret'),
+  );
+  assert.deepEqual(reads, ['/proc/42/status', '/proc/42/cmdline']);
+});
+
 test('tolerates vanished cgroups and sanitizes other cgroup read failures', async () => {
   const status = 'Name:\tnode\nVmRSS:\t1024 kB\n';
   const vanished = new Error('vanished-cgroup');

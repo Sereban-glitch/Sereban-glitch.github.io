@@ -163,11 +163,12 @@ function normalizeProcesses(records) {
 
 function parseProcessStatus(text) {
   const nameMatch = /^Name:\s+(.+)$/m.exec(text);
+  const memoryLine = /^VmRSS:.*$/m.exec(text);
   const memoryMatch = /^VmRSS:\s+(\d+)\s+kB$/m.exec(text);
-  if (!nameMatch || !memoryMatch) {
+  if (!nameMatch || (memoryLine && !memoryMatch)) {
     throw collectorError('MALFORMED_PROCESS_STATUS', 'Malformed process status');
   }
-  return { name: nameMatch[1], memoryKB: Number(memoryMatch[1]) };
+  return { name: nameMatch[1], memoryKB: memoryMatch ? Number(memoryMatch[1]) : null };
 }
 
 async function collectServer(deps = {}) {
@@ -225,9 +226,12 @@ async function collectProcesses(deps = {}) {
         try {
           const statusText = await readFile(`/proc/${pid}/status`, 'utf8');
           const status = parseProcessStatus(String(statusText));
-          const cmdline = await readFile(`/proc/${pid}/cmdline`, 'utf8');
+          const cmdline = String(await readFile(`/proc/${pid}/cmdline`, 'utf8'));
+          if (status.memoryKB === null && cmdline !== '') {
+            throw collectorError('MALFORMED_PROCESS_STATUS', 'Malformed process status');
+          }
           const cgroup = await readFile(`/proc/${pid}/cgroup`, 'utf8');
-          records.push({ ...status, cmdline: String(cmdline), cgroup: String(cgroup) });
+          records.push({ ...status, memoryKB: status.memoryKB ?? 0, cmdline, cgroup: String(cgroup) });
         } catch (error) {
           if (error?.code !== 'ENOENT') throw error;
         }
