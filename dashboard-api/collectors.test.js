@@ -41,6 +41,18 @@ test('rejects malformed resource files without reflecting their contents', () =>
   }
 });
 
+test('rejects incomplete and nonnumeric Linux load and uptime fields', () => {
+  for (const loadavg of [
+    '0.50 0.25 0.10',
+    '0.50 0.25 0.10 running/100 42',
+    '0.50 0.25 0.10 1/total 42',
+    '0.50 0.25 0.10 1/100 pid',
+  ]) {
+    assert.throws(() => parseLoadavg(loadavg, 4), (error) => error.code === 'MALFORMED_LOADAVG');
+  }
+  assert.throws(() => parseUptime('9876.54 idle'), (error) => error.code === 'MALFORMED_UPTIME');
+});
+
 test('rejects non-text resource inputs with collector-specific errors', () => {
   for (const [parse, code] of [
     [() => parseMeminfo(null), 'MALFORMED_MEMINFO'],
@@ -94,6 +106,21 @@ test('handles a zero-sized disk and sanitizes resource dependency failures', asy
   );
 });
 
+test('does not trust server dependency error codes when redacting failures', async () => {
+  const error = new Error('reserved-code-secret');
+  error.code = 'MALFORMED_MEMINFO';
+
+  await assert.rejects(
+    collectServer({
+      readFile: async () => { throw error; },
+      statfs: async () => ({ blocks: 0, bavail: 0, bsize: 1 }),
+      cpuCount: 1,
+    }),
+    (caught) => caught.code === 'SERVER_COLLECTION_FAILED'
+      && !String(caught).includes('reserved-code-secret'),
+  );
+});
+
 test('maps known commands to fixed labels and never returns command arguments', () => {
   const result = normalizeProcesses([
     { name: 'node', cmdline: 'node\0/srv/console-bot/index.js\0--token\0super-secret', memoryKB: 1024 },
@@ -108,6 +135,18 @@ test('maps known commands to fixed labels and never returns command arguments', 
     { key: 'postgres', name: 'PostgreSQL', detail: '1 process', memoryMB: 2, color: '#818cf8' },
     { key: 'console-bot', name: 'Арчи (console-bot)', detail: '1 process', memoryMB: 1, color: '#a78bfa' },
     { key: 'other', name: 'Прочее', detail: '1 process', memoryMB: 1, color: '#475569' },
+  ]);
+});
+
+test('does not classify service names found only in command arguments', () => {
+  const result = normalizeProcesses([
+    { name: 'backup', cmdline: 'backup\0--target=postgres', memoryKB: 1024 },
+    { name: 'worker', cmdline: 'worker\0/tmp/opencode/config.json', memoryKB: 2048 },
+    { name: 'node', cmdline: 'node\0/srv/wrapper.js\0/srv/agrobot/input.json', memoryKB: 4096 },
+  ]);
+
+  assert.deepEqual(result, [
+    { key: 'other', name: 'Прочее', detail: '3 processes', memoryMB: 7, color: '#475569' },
   ]);
 });
 
@@ -174,4 +213,15 @@ test('rejects malformed process status and unexpected read errors without leakin
       (error) => error.code === 'PROCESS_COLLECTION_FAILED' && !String(error).includes('secret'),
     );
   }
+});
+
+test('does not trust process dependency error codes when redacting failures', async () => {
+  const error = new Error('reserved-code-secret');
+  error.code = 'PROCESS_COLLECTION_FAILED';
+
+  await assert.rejects(
+    collectProcesses({ readdir: async () => { throw error; } }),
+    (caught) => caught.code === 'PROCESS_COLLECTION_FAILED'
+      && !String(caught).includes('reserved-code-secret'),
+  );
 });

@@ -11,10 +11,12 @@ const PROCESS_TYPES = [
   ['postgres', 'PostgreSQL', '#818cf8'],
   ['systemd-journald', 'systemd-journald', '#fbbf24'],
 ];
+const INTERNAL_ERROR = Symbol('internalCollectorError');
 
 function collectorError(code, message) {
   const error = new Error(message);
   error.code = code;
+  Object.defineProperty(error, INTERNAL_ERROR, { value: true });
   return error;
 }
 
@@ -44,9 +46,10 @@ function parseLoadavg(text, cpuCount) {
   if (typeof text !== 'string') {
     throw collectorError('MALFORMED_LOADAVG', 'Malformed load information');
   }
-  const fields = text.trim().split(/\s+/);
-  const values = fields.slice(0, 3).map(Number);
-  if (fields.length < 3 || values.some((value) => !Number.isFinite(value) || value < 0)
+  const match = /^(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)\s+(\d+)\/(\d+)\s+(\d+)\s*$/.exec(text);
+  const values = match?.slice(1).map(Number);
+  if (!values || values.some((value) => !Number.isFinite(value))
+      || values[3] > values[4] || values[4] === 0
       || !Number.isInteger(cpuCount) || cpuCount <= 0) {
     throw collectorError('MALFORMED_LOADAVG', 'Malformed load information');
   }
@@ -64,9 +67,10 @@ function parseUptime(text) {
   if (typeof text !== 'string') {
     throw collectorError('MALFORMED_UPTIME', 'Malformed uptime information');
   }
-  const fields = text.trim().split(/\s+/);
-  const uptime = Number(fields[0]);
-  if (fields.length < 2 || !Number.isFinite(uptime) || uptime < 0) {
+  const match = /^(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)\s*$/.exec(text);
+  const uptime = Number(match?.[1]);
+  const idle = Number(match?.[2]);
+  if (!match || !Number.isFinite(uptime) || !Number.isFinite(idle)) {
     throw collectorError('MALFORMED_UPTIME', 'Malformed uptime information');
   }
   return Math.floor(uptime);
@@ -74,6 +78,27 @@ function parseUptime(text) {
 
 function processDetail(count) {
   return `${count} ${count === 1 ? 'process' : 'processes'}`;
+}
+
+function processIdentityTokens(record) {
+  const identities = new Set([String(record.name || '')]);
+  const command = String(record.cmdline || '').split('\0');
+  const executable = command[0] || '';
+  const executableName = executable.split('/').filter(Boolean).at(-1) || '';
+  const identityPaths = [executable];
+
+  if (executableName === 'node' || executableName === 'nodejs') {
+    const script = command[1];
+    if (script && !script.startsWith('-')) identityPaths.push(script);
+  }
+
+  for (const identityPath of identityPaths) {
+    const parts = identityPath.split('/').filter(Boolean);
+    for (const part of parts) identities.add(part);
+    const basename = parts.at(-1);
+    if (basename?.includes('.')) identities.add(basename.slice(0, basename.lastIndexOf('.')));
+  }
+  return identities;
 }
 
 function normalizeProcesses(records) {
@@ -93,8 +118,8 @@ function normalizeProcesses(records) {
       throw collectorError('MALFORMED_PROCESS_RECORD', 'Malformed process record');
     }
 
-    const classificationInput = `${String(record.name || '')}\0${String(record.cmdline || '')}`;
-    const type = PROCESS_TYPES.find(([key]) => classificationInput.includes(key));
+    const identities = processIdentityTokens(record);
+    const type = PROCESS_TYPES.find(([key]) => identities.has(key));
     if (type) {
       const group = groups.get(type[0]);
       group.count += 1;
@@ -177,7 +202,7 @@ async function collectServer(deps = {}) {
       uptimeSeconds: parseUptime(String(uptime)),
     };
   } catch (error) {
-    if (typeof error?.code === 'string' && error.code.startsWith('MALFORMED_')) throw error;
+    if (error?.[INTERNAL_ERROR]) throw error;
     throw collectorError('SERVER_COLLECTION_FAILED', 'Server resource collection failed');
   }
 }
@@ -210,7 +235,6 @@ async function collectProcesses(deps = {}) {
     await Promise.all(Array.from({ length: Math.min(16, pids.length) }, worker));
     return normalizeProcesses(records);
   } catch (error) {
-    if (error?.code === 'PROCESS_COLLECTION_FAILED') throw error;
     throw collectorError('PROCESS_COLLECTION_FAILED', 'Process collection failed');
   }
 }
