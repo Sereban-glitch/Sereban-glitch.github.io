@@ -1,0 +1,31 @@
+[Unit]
+Description=Archi Live Dashboard API
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=archidash
+Group=archidash
+WorkingDirectory=/opt/archi-dashboard/dashboard-api
+EnvironmentFile=/etc/archi-dashboard-api.env
+Environment=PGHOST=/var/run/postgresql
+Environment=PGDATABASE=agrobot
+Environment=PORT=18181
+ExecStart=/opt/node-v24.16.0/bin/node /opt/archi-dashboard/dashboard-api/server.js
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+[Install]
+WantedBy=multi-user.target

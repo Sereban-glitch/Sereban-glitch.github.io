@@ -1,0 +1,9 @@
+35-209-212-217.sslip.io {
+    @status path /api/status
+    handle @status {
+        reverse_proxy 127.0.0.1:18181
+    }
+    handle {
+        respond 404
+    }
+}
