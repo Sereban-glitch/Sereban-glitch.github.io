@@ -1,0 +1,5 @@
+e331a84dddc9f5ead117f31b124d252d085b92d4e53d64b1b4ce6a91bed4cad9  gophergpt-v0.1.0-darwin-amd64.gz
+2e8e741ef6281f1a39e9430256510b59ec59d957010937ea466852cf4128dd99  gophergpt-v0.1.0-darwin-arm64.gz
+604777965314b3e096f80921fbb671be45dda784fd65dc1e7be3539acaa3f2ff  gophergpt-v0.1.0-linux-amd64.gz
+d95dcb1eee7729bc1bd804fa1704819d561bb42334473cbdb7815a7924e7c238  gophergpt-v0.1.0-linux-arm64.gz
+b6da4e2d94d7f58c6d124c84b641a9ee96751bd47742dee25fd83a0c0fd74226  gophergpt-v0.1.0-windows-amd64.zip

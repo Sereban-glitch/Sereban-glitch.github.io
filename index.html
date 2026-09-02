@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sereban-glitch | AI & Backend Developer</title>
     <meta property="og:title" content="Sereban-glitch | AI & Backend Developer">
-    <meta property="og:description" content="Zero-Touch Deployment, AI Agents, Go Backend. Портфолио проектов: Proakt, Smart Zapyt, Shark Dashboard, AGY Claw Bot.">
+    <meta property="og:description" content="Zero-Touch Deployment, AI Agents, Go Backend, On-Device ML. Портфолио проектов: GopherGPT, Proakt, Smart Zapyt, Shark Dashboard, AGY Claw Bot.">
     <meta property="og:image" content="https://Sereban-glitch.github.io/assets/shark_cover.jpg">
     <meta property="og:url" content="https://Sereban-glitch.github.io">
     <meta name="twitter:card" content="summary_large_image">
@@ -221,6 +221,21 @@
             <h2 class="section-title">Проекты</h2>
             <div class="projects-grid">
                 <div class="card">
+                    <img class="card-img" src="assets/gophergpt_cover.jpg" alt="GopherGPT — GPT обучается на телефоне">
+                    <div class="card-body">
+                        <h2>GopherGPT 🐹</h2>
+                        <p>Маленький GPT (1,45 млн параметров), написанный и обученный на чистом Go прямо на телефоне Black Shark 2 2017 года: без Python, без PyTorch, без GPU. Ночью, пока телефон заряжается, тренер делает десятки тысяч шагов градиентного спуска по корпусу Жюля Верна (~1.4 шага/с); днём это снова обычный телефон. 4 блока × 4 головы внимания, окно 32 токена, словарь 6 060 BPE-токенов; чекпойнт 5.8 МБ автосохраняется каждые 500 шагов, а убийства процесса Android лечатся тёплым рестартом — история тренировки не теряется. Поверх учебной базы zakirullin/gpt-go добавлены: валидационный сплит (ловим переобучение до того, как это станет модно), косинусное расписание lr с прогревом и глобальный клип градиентов (прививка от классических взрывов лосса на 30–100k шагов). Лосс 8.69 → 4.56 за ~57 000 шагов — плато сходится с арифметикой Chinchilla, а живые сэмплы показывают, как из лепета вырастают фразовые обрывки. Дальше: юридический забег на русском (кодексы + 3 000 живых решений судов из публичного реестра ЕДРСР) и «Лламизация» архитектуры (RMSNorm, RoPE, SwiGLU, KV-cache). Страница проекта — как лабораторный журнал: сэмплы, кривая лосса, схема трансформера, исходники и бинарники v0.1.0 для 5 платформ.</p>
+                        <div class="tags">
+                            <span class="tag">Go</span>
+                            <span class="tag">Transformer</span>
+                            <span class="tag">ML с нуля</span>
+                            <span class="tag">Termux</span>
+                            <span class="tag">On-Device</span>
+                        </div>
+                        <a href="gophergpt/" class="card-btn">Страница проекта</a>
+                    </div>
+                </div>
+                <div class="card">
                     <img class="card-img" src="assets/proakt_cover.jpg" alt="Proakt — Telegram бот строителя">
                     <div class="card-body">
                         <h2>Proakt 🏗️</h2>
@@ -295,6 +310,8 @@
                 <span class="skill-badge">Supervisord</span>
                 <span class="skill-badge">Docker</span>
                 <span class="skill-badge">GitHub Actions</span>
+                <span class="skill-badge">Transformers</span>
+                <span class="skill-badge">On-Device ML</span>
             </div>
         </section>
 
@@ -306,6 +323,8 @@
                 <a href="mailto:i0323581@gmail.com">i0323581@gmail.com</a>
                 &nbsp;·&nbsp;
                 <a href="https://github.com/Sereban-glitch" target="_blank">GitHub</a>
+                &nbsp;·&nbsp;
+                <a href="gophergpt/">GopherGPT</a>
                 &nbsp;·&nbsp;
                 <a href="https://github.com/Sereban-glitch/proakt-build-bot" target="_blank">Proakt</a>
                 &nbsp;·&nbsp;

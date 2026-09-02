@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GopherGPT — GPT с нуля на Go, обученный на телефоне | Sereban-glitch</title>
+    <meta property="og:title" content="GopherGPT — GPT с нуля на Go, обученный на телефоне">
+    <meta property="og:description" content="1,45 млн параметров, чистый Go, без Python и GPU. Ночные тренировки на Black Shark 2 в Termux: лосс 8.69 → 4.56, сэмплы, журнал, бинарники для 5 платформ.">
+    <meta property="og:image" content="https://Sereban-glitch.github.io/assets/gophergpt_cover.jpg">
+    <meta property="og:url" content="https://Sereban-glitch.github.io/gophergpt/">
+    <meta name="twitter:card" content="summary_large_image">
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #38bdf8;
+            --accent-hover: #0ea5e9;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding: 1.5rem;
+        }
+        .container { max-width: 920px; margin: 0 auto; }
+        a { color: var(--accent); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .hero { margin-bottom: 2.5rem; }
+        .hero-img {
+            width: 100%;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            display: block;
+            margin-bottom: 1.5rem;
+        }
+        .hero h1 {
+            font-size: 2.4rem;
+            margin-bottom: 0.4rem;
+            background: linear-gradient(135deg, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .hero .tagline { color: var(--text-muted); font-size: 1.15rem; margin-bottom: 1rem; }
+        .badges { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+        .badge {
+            background: var(--card-bg);
+            border: 1px solid #334155;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            color: var(--accent);
+            font-weight: 600;
+        }
+        section { margin-bottom: 3rem; }
+        .section-title {
+            font-size: 1.4rem;
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .section-title::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: #334155;
+        }
+        p.lead { color: var(--text-muted); font-size: 1rem; margin-bottom: 1rem; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 3rem;
+        }
+        .stat {
+            background: var(--card-bg);
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 1.1rem 1.25rem;
+        }
+        .stat .num {
+            font-size: 1.55rem;
+            font-weight: 700;
+            color: var(--accent);
+            font-variant-numeric: tabular-nums;
+        }
+        .stat .label { color: var(--text-muted); font-size: 0.85rem; margin-top: 0.15rem; }
+        .card {
+            background: var(--card-bg);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.25rem;
+        }
+        .card h3 { color: var(--accent); margin-bottom: 0.75rem; font-size: 1.05rem; }
+        .card p { color: var(--text-muted); font-size: 0.93rem; margin-bottom: 0.75rem; }
+        .card p:last-child { margin-bottom: 0; }
+        pre {
+            background: #0b1120;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            overflow-x: auto;
+            font-family: "SF Mono", "Cascadia Code", Consolas, Menlo, monospace;
+            font-size: 0.82rem;
+            line-height: 1.55;
+            color: #cbd5e1;
+            margin: 0.75rem 0;
+        }
+        pre .t { color: var(--text-muted); }
+        .sample-head { color: var(--text-main); font-weight: 600; font-size: 0.9rem; }
+        .sample-head .step { color: var(--accent); }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+        }
+        th, td { text-align: left; padding: 0.6rem 0.75rem; border-bottom: 1px solid #334155; }
+        th { color: var(--text-muted); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; }
+        td.dl a { font-weight: 600; }
+        td.mono { font-family: Consolas, Menlo, monospace; color: var(--text-muted); font-size: 0.8rem; }
+        .note {
+            color: var(--text-muted);
+            font-size: 0.82rem;
+            margin-top: 0.75rem;
+        }
+        .roadmap li { color: var(--text-muted); margin-bottom: 0.5rem; font-size: 0.93rem; }
+        .roadmap { padding-left: 1.25rem; }
+        .roadmap .done { color: var(--accent); }
+        .chart-wrap { margin: 1rem 0 0.25rem; }
+        .chart-wrap svg { width: 100%; height: auto; display: block; }
+        .diagram-wrap { margin: 1rem 0; }
+        .diagram-wrap svg { width: 100%; height: auto; display: block; }
+        footer {
+            text-align: center;
+            color: var(--text-muted);
+            border-top: 1px solid #334155;
+            padding-top: 2rem;
+            margin-top: 3rem;
+            font-size: 0.9rem;
+        }
+        footer a { color: var(--accent); }
+        @media (max-width: 600px) {
+            .hero h1 { font-size: 1.7rem; }
+            body { padding: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <img class="hero-img" src="../assets/gophergpt_cover.jpg" alt="GopherGPT — гофер обучает трансформер на телефоне">
+            <h1>GopherGPT 🐹</h1>
+            <p class="tagline">GPT с нуля на чистом Go — обученный <b>на телефоне</b>. Без Python. Без PyTorch. Без GPU.</p>
+            <div class="badges">
+                <span class="badge">pure Go</span>
+                <span class="badge">1 451 000 параметров</span>
+                <span class="badge">Black Shark 2 · Termux</span>
+                <span class="badge">v0.1.0</span>
+                <span class="badge">MIT</span>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat"><div class="num">1 451 000</div><div class="label">параметров модели</div></div>
+            <div class="stat"><div class="num">80 000</div><div class="label">шагов — цель ночного забега (идёт ~57k)</div></div>
+            <div class="stat"><div class="num">8.69 → 4.56</div><div class="label">падение лосса (реальный лог)</div></div>
+            <div class="stat"><div class="num">~1.4 шаг/с</div><div class="label">скорость обучения на телефоне</div></div>
+        </div>
+
+        <section>
+            <h2 class="section-title">Что это такое</h2>
+            <div class="card">
+                <p>GopherGPT — маленький decoder-only трансформер, целиком написанный и обученный на Go. Железо — Black Shark 2 2017 года с Snapdragon 835: ночью, пока телефон заряжается, тренер гонит десятки тысяч шагов градиентного спуска по корпусу Жюля Верна; днём это снова обычный телефон владельца с мессенджерами. Вся ML-математика — умножения матриц, attention, AdamW — работает на чистом Go в Termux, без единого вызова Python-экосистемы.</p>
+                <p>Проект вырос из учебной реализации <a href="https://github.com/zakirullin/gpt-go" target="_blank">zakirullin/gpt-go</a> (сопровождает курс Карпатого <a href="https://karpathy.ai/zero-to-hero.html" target="_blank">Neural Networks: Zero to Hero</a>) и превратился в собственный on-device конвейер: ночные тренировки с автосохранением и тёплыми рестартами, валидационный контроль, косинусное расписание с прогревом, клип градиентов — и сборка данных для следующего забега прямо с телефона.</p>
+                <p>Архитектура: 4 блока × 4 головы внимания, embedding 88, окно контекста 32 токена, словарь 6 060 BPE-токенов. Чекпойнт — ~5.8 МБ float32, автосохранение каждые 500 шагов: Android дважды убивал процесс — тренировка каждый раз подхватывалась с последнего чекпойнта без потери истории.</p>
+            </div>
+        </section>
+
+        <section>
+            <h2 class="section-title">Модель учится — живые сэмплы</h2>
+            <div class="card">
+                <p>Генерации модели в необработанном виде, из реальных логов тренировки. Разница между шагом 1 000 и 16 000 — это и есть обучение, увиденное глазами:</p>
+                <div class="sample-head"><span class="step">шаг 1 000</span> · лосс 6.85 · «лепет», но настоящие слова корпуса уже появились</div>
+                <pre><span class="t">mysterious islandll theITos, from and the on desert these not
+chosenined,,.. of be ad the think Fogg. help,, ers done you despair
+of of ans in were that, the consisted arms,, any did during</span></pre>
+                <div class="sample-head"><span class="step">шаг 16 000</span> · первый текст, похожий на фразы</div>
+                <pre><span class="t">mysterious island. he could not yield, as if
+lightours out in this Macillly.
+
+Ua cetacean.
+
+The south, as the beach, said all the six days, that he,
+andia, interior, for a small knowing aastic</span></pre>
+            </div>
+        </section>
+
+        <section>
+            <h2 class="section-title">Путь лосса</h2>
+            <div class="card">
+                <p>Кривая обучения по живым логам: от 8.69 на старте до плато ~4.5 — это согласуется с арифметикой Chinchilla для корпуса в 1.05 млн токенов (78 эпох — уже много, модель упёрлась в данные, а не в размер).</p>
+                <div class="chart-wrap">
+                <svg viewBox="0 0 700 300" role="img" aria-label="График падения лосса от 8.69 до 4.56">
+                    <rect x="60" y="40" width="600" height="210" fill="#0b1120" rx="6"/>
+                    <g stroke="#334155" stroke-width="1">
+                        <line x1="60" y1="82" x2="660" y2="82"/>
+                        <line x1="60" y1="124" x2="660" y2="124"/>
+                        <line x1="60" y1="166" x2="660" y2="166"/>
+                        <line x1="60" y1="208" x2="660" y2="208"/>
+                        <line x1="210" y1="40" x2="210" y2="250"/>
+                        <line x1="360" y1="40" x2="360" y2="250"/>
+                        <line x1="510" y1="40" x2="510" y2="250"/>
+                    </g>
+                    <g fill="#94a3b8" font-size="11" font-family="system-ui, sans-serif">
+                        <text x="52" y="254" text-anchor="end">4.0</text>
+                        <text x="52" y="212" text-anchor="end">5.0</text>
+                        <text x="52" y="170" text-anchor="end">6.0</text>
+                        <text x="52" y="128" text-anchor="end">7.0</text>
+                        <text x="52" y="86" text-anchor="end">8.0</text>
+                        <text x="60" y="272" text-anchor="middle">0</text>
+                        <text x="210" y="272" text-anchor="middle">20k</text>
+                        <text x="360" y="272" text-anchor="middle">40k</text>
+                        <text x="510" y="272" text-anchor="middle">60k</text>
+                        <text x="660" y="272" text-anchor="middle">80k</text>
+                        <text x="360" y="292" text-anchor="middle" fill="#64748b">шаги тренировки</text>
+                        <text x="30" y="150" text-anchor="middle" fill="#64748b" transform="rotate(-90 30 150)">train loss</text>
+                    </g>
+                    <path d="M 67 53 L 67 130 L 345 222 L 488 226 L 660 231"
+                          fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linejoin="round"/>
+                    <path d="M 488 226 L 660 231" fill="none" stroke="#38bdf8" stroke-width="2" stroke-dasharray="5 5" opacity="0.55"/>
+                    <g fill="#38bdf8">
+                        <circle cx="67" cy="53" r="4"/>
+                        <circle cx="67" cy="130" r="4"/>
+                        <circle cx="345" cy="222" r="4"/>
+                        <circle cx="488" cy="226" r="4"/>
+                    </g>
+                    <g fill="#f8fafc" font-size="11" font-family="system-ui, sans-serif">
+                        <text x="80" y="50">8.69 — старт</text>
+                        <text x="80" y="148">6.85 — шаг 1k</text>
+                        <text x="345" y="212" text-anchor="middle">4.67 — 38k</text>
+                        <text x="500" y="246">4.56 — 57k · идёт сейчас</text>
+                    </g>
+                </svg>
+                </div>
+                <p class="note">Скорость зависит от того, спит ли владелец: ~1.4 шага/с ночью, ~0.15 — когда телефоном пользуются днём.</p>
+            </div>
+        </section>
+
+        <section>
+            <h2 class="section-title">Как устроен трансформер</h2>
+            <div class="card">
+                <p>Модель — классический GPT: текст нарезается на токены BPE, каждый превращается в вектор-embedding, четыре одинаковых блока перемешивают информацию через multi-head attention и полносвязные слои, и на выходе softmax выбирает следующий токен. Вся математика — на матрицах из pkg/: matmul, softmax, AdamW — написаны руками, чтобы понимать каждую строчку.</p>
+                <div class="diagram-wrap">
+                <svg viewBox="0 0 700 340" role="img" aria-label="Схема трансформера GopherGPT">
+                    <defs>
+                        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                            <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"/>
+                        </marker>
+                    </defs>
+                    <g font-family="system-ui, sans-serif" font-size="12" fill="#f8fafc" text-anchor="middle">
+                        <rect x="250" y="10" width="200" height="34" rx="8" fill="#1e293b" stroke="#334155"/>
+                        <text x="350" y="31">текст → BPE-токены (словарь 6 060)</text>
+                        <line x1="350" y1="44" x2="350" y2="62" stroke="#94a3b8" marker-end="url(#arr)"/>
+
+                        <rect x="250" y="66" width="200" height="34" rx="8" fill="#1e293b" stroke="#334155"/>
+                        <text x="350" y="87">embedding (dim 88)</text>
+                        <line x1="350" y1="100" x2="350" y2="118" stroke="#94a3b8" marker-end="url(#arr)"/>
+
+                        <rect x="150" y="122" width="400" height="44" rx="10" fill="#1e293b" stroke="#38bdf8"/>
+                        <text x="350" y="141" fill="#38bdf8" font-weight="700">Блок × 4</text>
+                        <text x="350" y="158" font-size="11" fill="#94a3b8">multi-head attention (4 головы) + MLP + LayerNorm</text>
+
+                        <line x1="350" y1="166" x2="350" y2="192" stroke="#94a3b8" marker-end="url(#arr)"/>
+                        <rect x="250" y="196" width="200" height="34" rx="8" fill="#1e293b" stroke="#334155"/>
+                        <text x="350" y="217">logits (6 060 токенов)</text>
+                        <line x1="350" y1="230" x2="350" y2="248" stroke="#94a3b8" marker-end="url(#arr)"/>
+
+                        <rect x="250" y="252" width="200" height="34" rx="8" fill="#1e293b" stroke="#38bdf8"/>
+                        <text x="350" y="273" fill="#38bdf8">softmax → следующий токен</text>
+
+                        <text x="350" y="318" fill="#64748b" font-size="11">окно контекста: 32 токена · выход: 1 токен за проход</text>
+                    </g>
+                </svg>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2 class="section-title">Скачать · v0.1.0</h2>
+            <div class="card">
+                <p>Один статический бинарник, никаких зависимостей. Внутри уже зашит корпус Верна и словарь — распакуйте и запускайте:</p>
+                <table>
+                    <thead><tr><th>Платформа</th><th>Файл</th><th>Размер</th><th>SHA-256</th></tr></thead>
+                    <tbody>
+                        <tr><td>Linux · amd64</td><td class="dl"><a href="dist/gophergpt-v0.1.0-linux-amd64.gz">gophergpt-v0.1.0-linux-amd64.gz</a></td><td class="mono">2.6 МБ</td><td class="mono">6047779653…</td></tr>
+                        <tr><td>Linux · arm64</td><td class="dl"><a href="dist/gophergpt-v0.1.0-linux-arm64.gz">gophergpt-v0.1.0-linux-arm64.gz</a></td><td class="mono">2.5 МБ</td><td class="mono">d95dcb1eee…</td></tr>
+                        <tr><td>macOS · amd64</td><td class="dl"><a href="dist/gophergpt-v0.1.0-darwin-amd64.gz">gophergpt-v0.1.0-darwin-amd64.gz</a></td><td class="mono">2.6 МБ</td><td class="mono">e331a84ddd…</td></tr>
+                        <tr><td>macOS · arm64 (M1/M2)</td><td class="dl"><a href="dist/gophergpt-v0.1.0-darwin-arm64.gz">gophergpt-v0.1.0-darwin-arm64.gz</a></td><td class="mono">2.5 МБ</td><td class="mono">2e8e741ef6…</td></tr>
+                        <tr><td>Windows · amd64</td><td class="dl"><a href="dist/gophergpt-v0.1.0-windows-amd64.zip">gophergpt-v0.1.0-windows-amd64.zip</a></td><td class="mono">2.6 МБ</td><td class="mono">b6da4e2d94…</td></tr>
+                    </tbody>
+                </table>
+                <p class="note">Все контрольные суммы: <a href="dist/SHA256SUMS.txt">dist/SHA256SUMS.txt</a> · собрано с <code>-trimpath -ldflags "-s -w"</code>, CGO выключен.</p>
+            </div>
+        </section>
+
+        <section>
+            <h2 class="section-title">Быстрый старт</h2>
+            <div class="card">
+                <p>Из бинарника (Linux/macOS):</p>
+                <pre>gunzip gophergpt-v0.1.0-linux-amd64.gz
+chmod +x gophergpt-v0.1.0-linux-amd64
+./gophergpt-v0.1.0-linux-amd64 -chat          <span class="t"># поговорить с обученной моделью</span></pre>
+                <p>Из исходников (нужен Go 1.22+ — прямо в <a href="https://termux.dev" target="_blank">Termux</a> на телефоне тоже работает):</p>
+                <pre>git clone https://github.com/Sereban-glitch/Sereban-glitch.github.io
+cd Sereban-glitch.github.io/gophergpt
+go run .                                          <span class="t"># тренировка на встроенном корпусе Верна</span>
+go run . -chat                                    <span class="t"># чат после тренировки</span>
+go run . -corpus my.txt -topk 8 -temp 0.8         <span class="t"># свой корпус + управление сэмплингом</span></pre>
+                <p class="note">Флаги проекта: <code>-steps</code> · <code>-save-every</code> · <code>-eval-every</code> · <code>-corpus</code> · <code>-topk</code> · <code>-temp</code> · <code>-prompt</code> · <code>-chat</code></p>
+            </div>
+        </section>
+
+        <section>
+            <h2 class="section-title">Дорожная карта</h2>
+            <div class="card">
+                <ul class="roadmap">
+                    <li><span class="done">✔</span> Фаза 0–1 — аудит устройства, сборка, демо 1 000 шагов (лосс 8.69 → 6.85)</li>
+                    <li><span class="done">⟳</span> Фаза 2 — ночная тренировка 80 000 шагов: идёт ~57k, лосс 4.56; валидация + cosine LR + клип уже в деле</li>
+                    <li><span class="done">⟳</span> Фаза 2.5 — юридический корпус: кодексы и классика собраны, живые решения судов ЕДРСР добывает агент</li>
+                    <li>Фаза 3 — «Лламизация»: RMSNorm, RoPE, SwiGLU, KV-cache, weight tying, быстрые графы autograd</li>
+                    <li>Фаза 4 — модель класса Gemma 270M через GoMLX</li>
+                    <li>Фаза 5 — модель как собеседник внутри терминального агента</li>
+                </ul>
+            </div>
+        </section>
+
+        <section>
+            <h2 class="section-title">Честные ограничения</h2>
+            <div class="card">
+                <p>Это масштаб игрушки: 1.45 млн параметров не напишут связное эссе — цель проекта понять весь стек до дна, а не выпустить продукт. Юридический тюнинг имитирует <i>стиль</i> документов, а не даёт юридических советов. И телефон — медленный тренер: прогресс измеряется ночами, а не GPU-часами.</p>
+            </div>
+        </section>
+
+        <section>
+            <h2 class="section-title">Как строился этот репозиторий</h2>
+            <div class="card">
+                <p>Репозиторий — сам по себе эксперимент «человек руководит, ИИ исполняет»: владелец ведёт проект с телефона, удалённый агент-наставник проектирует ML-изменения и раскатывает их по SSH, агент на самом устройстве (OpenCode) собирает данные через браузер телефона. Git-история — живая стенограмма этого сотрудничества, включая фиксы, закоммиченные прямо во время идущей тренировки.</p>
+            </div>
+        </section>
+
+        <section>
+            <h2 class="section-title">Благодарности и лицензия</h2>
+            <div class="card">
+                <p>База: <a href="https://github.com/zakirullin/gpt-go" target="_blank">zakirullin/gpt-go</a> (Артём Закируллин, MIT) · педагогическая линия: <a href="https://karpathy.ai/zero-to-hero.html" target="_blank">Neural Networks: Zero to Hero</a> Андрея Карпатого · данные: корпус Жюля Верна (public domain), официальные публичные документы.</p>
+                <p>MIT — см. <a href="LICENSE">LICENSE</a>. Полная документация: <a href="README.md">README.md</a> (EN) · <a href="README-RU.md">README-RU.md</a> · <a href="docs/TRAINING_LOG.md">лабораторный журнал</a> · <a href="docs/ROADMAP.md">дорожная карта</a>.</p>
+            </div>
+        </section>
+
+        <footer>
+            <p>
+                <a href="../">← sereban-glitch.github.io</a>
+                &nbsp;·&nbsp;
+                <a href="https://github.com/Sereban-glitch" target="_blank">GitHub</a>
+                &nbsp;·&nbsp;
+                <a href="https://t.me/sereban_tech" target="_blank">Telegram</a>
+            </p>
+        </footer>
+    </div>
+</body>
+</html>
